@@ -18,9 +18,9 @@ import { mockSession } from "@/lib/mock";
 import { loadSession, type AnalysisSession } from "@/lib/store";
 import type { InstructorScorecard } from "@/lib/types";
 
-function latestDate(cards: InstructorScorecard[]): string {
-  return [...cards].sort((a, b) => b.lecture_date.localeCompare(a.lecture_date))[0]
-    .lecture_date;
+// 분석 완료 후 기본 선택: 강의가 여러 개면 '종합'(최종), 하나면 그 강의
+function initialView(cards: InstructorScorecard[]): string {
+  return cards.length > 1 ? OVERALL_VIEW : cards[0].lecture_date;
 }
 
 export default function AnalysisPage() {
@@ -30,7 +30,7 @@ export default function AnalysisPage() {
   useEffect(() => {
     const s = loadSession() ?? mockSession();
     setSession(s);
-    setDate(latestDate(s.scorecards));
+    setDate(initialView(s.scorecards));
   }, []);
 
   if (!session || !date) {
