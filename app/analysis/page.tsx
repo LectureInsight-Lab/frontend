@@ -11,6 +11,7 @@ import { FinalFeedback } from "@/components/dashboard/FinalFeedback";
 import { RadarScore } from "@/components/dashboard/RadarScore";
 import { SummaryBox } from "@/components/dashboard/SummaryBox";
 import { TopBar } from "@/components/dashboard/TopBar";
+import { api } from "@/lib/api";
 import { OVERALL_VIEW, buildAggregate } from "@/lib/aggregate";
 import { CATEGORIES } from "@/lib/catalog";
 import { fmtScore, trendMeta } from "@/lib/format";
@@ -26,12 +27,46 @@ function initialView(cards: InstructorScorecard[]): string {
 export default function AnalysisPage() {
   const [session, setSession] = useState<AnalysisSession | null>(null);
   const [date, setDate] = useState<string | null>(null);
+  const [narrative, setNarrative] = useState<{
+    overall_feedback: string;
+    summary: string;
+  } | null>(null);
+  const [narrLoading, setNarrLoading] = useState(false);
 
   useEffect(() => {
     const s = loadSession() ?? mockSession();
     setSession(s);
     setDate(initialView(s.scorecards));
   }, []);
+
+  // 보고 있는 카드(단일 일자/종합)가 바뀌면 종합 분석+요약을 백엔드에서 생성.
+  // 흐름: 최종 분석(overall_feedback) → 그 요약(summary)을 한 번의 호출로 받는다.
+  useEffect(() => {
+    if (!session || !date) return;
+    const cards = session.scorecards;
+    const isOverall = date === OVERALL_VIEW;
+    const card = isOverall
+      ? buildAggregate(cards)
+      : cards.find((c) => c.lecture_date === date) ?? cards[cards.length - 1];
+
+    let cancelled = false;
+    setNarrLoading(true);
+    setNarrative(null);
+    api
+      .narrative(card, isOverall, cards.length)
+      .then((n) => {
+        if (!cancelled) setNarrative(n);
+      })
+      .catch(() => {
+        if (!cancelled) setNarrative(null); // 폴백: 컴포넌트가 템플릿 표시
+      })
+      .finally(() => {
+        if (!cancelled) setNarrLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session, date]);
 
   if (!session || !date) {
     return (
@@ -146,7 +181,11 @@ export default function AnalysisPage() {
             </CardBody>
           </Card>
 
-          <SummaryBox card={primary} />
+          <SummaryBox
+            card={primary}
+            summary={narrative?.summary}
+            loading={narrLoading}
+          />
 
           {/* 파일 다수일 경우: 강의별 최종 점수 점 그래프 */}
           {multi ? (
@@ -182,7 +221,11 @@ export default function AnalysisPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-subtle">
             최종 피드백
           </h2>
-          <FinalFeedback card={primary} />
+          <FinalFeedback
+            card={primary}
+            overallFeedback={narrative?.overall_feedback}
+            loading={narrLoading}
+          />
         </section>
 
         <footer className="no-print flex justify-between border-t border-line pt-6 text-sm">

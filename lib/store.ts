@@ -33,3 +33,35 @@ export function clearSession(): void {
   if (typeof window === "undefined") return;
   sessionStorage.removeItem(KEY);
 }
+
+// ── 진행 중 분석 (입력 화면 → /analyzing 으로 넘기는 job 목록) ──
+const PENDING_KEY = "lecture-insight:pending";
+
+export type PendingJob = { jobId: string; fileName: string; date: string };
+
+export type PendingAnalysis = {
+  instructorId: string;
+  jobs: PendingJob[];
+  createdAt: string;
+};
+
+export function savePending(p: PendingAnalysis): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(PENDING_KEY, JSON.stringify(p));
+}
+
+export function loadPending(): PendingAnalysis | null {
+  if (typeof window === "undefined") return null;
+  const raw = sessionStorage.getItem(PENDING_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as PendingAnalysis;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPending(): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem(PENDING_KEY);
+}

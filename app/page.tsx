@@ -1,13 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { api } from "@/lib/api";
 import { mockSession } from "@/lib/mock";
-import { saveSession } from "@/lib/store";
-import type { InstructorScorecard } from "@/lib/types";
+import { savePending, saveSession, type PendingJob } from "@/lib/store";
 
 // 파일명에서 YYYY-MM-DD 추출 (예: 2026-02-02_java.txt)
 function parseDate(name: string): string | null {
@@ -27,8 +25,23 @@ export default function HomePage() {
   const [speakerNote, setSpeakerNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   const canAnalyze = files.length > 0 && instructorId.trim().length > 0;
+
+  // 클릭/드롭 공통: .txt 만 추려 첨부 목록에 반영
+  function pickFiles(list: FileList | null) {
+    const arr = Array.from(list ?? []).filter(
+      (f) => f.type === "text/plain" || f.name.toLowerCase().endsWith(".txt")
+    );
+    if (arr.length) setFiles(arr);
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    pickFiles(e.dataTransfer.files);
+  }
 
   async function runAnalysis() {
     setError(null);
@@ -38,7 +51,7 @@ export default function HomePage() {
     }
     setBusy(true);
     try {
-      const cards: InstructorScorecard[] = [];
+      const jobs: PendingJob[] = [];
       for (const file of files) {
         const text = await file.text();
         const date = parseDate(file.name) ?? lectureDate;
@@ -47,24 +60,23 @@ export default function HomePage() {
             `'${file.name}'의 강의 일자를 알 수 없습니다. 파일명에 날짜를 넣거나 강의 일자를 입력하세요.`
           );
         }
-        const card = await api.analyzeLecture({
+        const { job_id } = await api.startLecture({
           instructor_id: instructorId.trim(),
           lecture_date: date,
           raw_text: text,
           course_id: courseId.trim() || undefined,
         });
-        cards.push(card);
+        jobs.push({ jobId: job_id, fileName: file.name, date });
       }
-      saveSession({
+      savePending({
         instructorId: instructorId.trim(),
-        scorecards: cards,
-        source: "api",
+        jobs,
         createdAt: new Date().toISOString(),
       });
-      router.push("/analysis");
+      router.push("/analyzing");
     } catch (e) {
       setError(
-        `분석 실패: 백엔드(FastAPI :8000) 실행 여부를 확인하세요.\n${
+        `분석 시작 실패: 백엔드(FastAPI :8000) 실행 여부를 확인하세요.\n${
           e instanceof Error ? e.message : String(e)
         }`
       );
@@ -95,16 +107,33 @@ export default function HomePage() {
           <label className="text-sm font-medium text-ink">
             데이터 첨부 <span className="text-subtle">(txt, 여러 개 가능)</span>
           </label>
-          <label className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-line bg-canvas px-4 py-8 text-center transition hover:border-brand">
+          <label
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+            }}
+            onDrop={onDrop}
+            className={`mt-2 flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-4 py-8 text-center transition ${
+              dragOver
+                ? "border-brand bg-brand-soft"
+                : "border-line bg-canvas hover:border-brand"
+            }`}
+          >
             <span className="text-sm text-subtle">
-              클릭하여 STT 전사본(.txt) 선택
+              {dragOver
+                ? "여기에 놓기"
+                : "클릭하거나 .txt 파일을 끌어다 놓기"}
             </span>
             <input
               type="file"
               accept=".txt,text/plain"
               multiple
               className="hidden"
-              onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+              onChange={(e) => pickFiles(e.target.files)}
             />
           </label>
           {files.length > 0 ? (
@@ -180,12 +209,6 @@ export default function HomePage() {
           >
             데모 데이터로 보기
           </button>
-          <Link
-            href="/compare"
-            className="ml-auto text-sm text-subtle underline-offset-4 hover:underline"
-          >
-            비교 / 추이 →
-          </Link>
         </div>
       </div>
     </main>

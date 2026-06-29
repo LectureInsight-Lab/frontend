@@ -26,6 +26,7 @@ export type ItemScore = {
   bow_score: number;
   final_confidence: number; // 0~1
   evidence: string;
+  reason?: string; // 점수 근거 해설 (왜 이 점수인지) — 항목표 '해설' 칸
   strengths: string;
   improvements: string;
   needs_human_review: boolean;
@@ -59,4 +60,22 @@ export type LectureRequest = {
 export type ReportResponse = {
   files: Record<string, string>;
   download: Record<string, string>;
+};
+
+// 비동기 분석 작업 진행 상태 (GET /api/v1/analysis/job/{id})
+export type JobLog = { ts: string; level: string; message: string };
+
+export type JobStatusValue = "pending" | "running" | "done" | "error";
+
+export type JobStatus = {
+  job_id: string;
+  label?: string;
+  status: JobStatusValue;
+  percent: number;
+  stage: string;
+  completed: number;
+  total: number;
+  logs: JobLog[];
+  result?: InstructorScorecard | null;
+  error?: string | null;
 };

@@ -40,16 +40,17 @@ export function ItemTable({ items }: { items: ItemScore[] }) {
                   <ScoreBar score={it.final_score} />
                 </td>
                 <td className="px-4 py-3 text-ink">
-                  {it.evidence ? (
-                    <p className="text-[13px] leading-relaxed text-subtle">
-                      <span className="font-medium text-ink">근거 </span>
-                      {it.evidence}
+                  {/* 해설 = '왜 이 점수인지' (고득점→잘한 점, 저득점→부족한 점).
+                      개선 코칭은 하단 '최종 피드백'에서 다룬다. */}
+                  {it.reason || it.improvements ? (
+                    <p className="text-[13px] leading-relaxed text-ink">
+                      {it.reason || it.improvements}
                     </p>
                   ) : null}
-                  {it.improvements ? (
-                    <p className="mt-1 text-[13px] leading-relaxed text-ink">
-                      <span className="font-medium text-brand">개선 </span>
-                      {it.improvements}
+                  {it.evidence ? (
+                    <p className="mt-1 text-[13px] leading-relaxed text-subtle">
+                      <span className="font-medium text-ink">근거 </span>
+                      {it.evidence}
                     </p>
                   ) : null}
                 </td>

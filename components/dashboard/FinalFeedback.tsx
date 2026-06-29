@@ -17,18 +17,33 @@ function ItemPill({ item, tone }: { item: ItemScore; tone: "good" | "warn" }) {
   );
 }
 
-// 최종 피드백 — 요약보다 디테일한 정리 + 강점/개선 항목
-export function FinalFeedback({ card }: { card: InstructorScorecard }) {
+// 최종 피드백 — 강의 전반에 대한 LLM 종합 분석(자연어) + 강점/개선 항목.
+// overallFeedback 가 없으면(백엔드 미연결/생성 실패) 점수 기반 템플릿으로 폴백.
+export function FinalFeedback({
+  card,
+  overallFeedback,
+  loading = false,
+}: {
+  card: InstructorScorecard;
+  overallFeedback?: string | null;
+  loading?: boolean;
+}) {
   const highs = highItems(card, 3);
   const lows = lowItems(card, 3);
 
   return (
     <Card>
-      <CardHeader title="최종 피드백" desc="분석 내용 종합 정리 및 개선 제안" />
+      <CardHeader title="최종 피드백" desc="강의 전반에 대한 종합 분석" />
       <CardBody className="space-y-5">
-        <p className="text-[15px] leading-relaxed text-ink">
-          {feedbackNarrative(card)}
-        </p>
+        {loading ? (
+          <p className="text-[15px] leading-relaxed text-subtle">
+            종합 분석 생성 중…
+          </p>
+        ) : (
+          <p className="whitespace-pre-line text-[15px] leading-relaxed text-ink">
+            {overallFeedback ?? feedbackNarrative(card)}
+          </p>
+        )}
 
         <div className="grid gap-4 md:grid-cols-2">
           <div>
