@@ -43,7 +43,9 @@ export default function AnalysisPage() {
   // 흐름: 최종 분석(overall_feedback) → 그 요약(summary)을 한 번의 호출로 받는다.
   useEffect(() => {
     if (!session || !date) return;
-    const cards = session.scorecards;
+    const cards = [...session.scorecards].sort((a, b) =>
+      a.lecture_date.localeCompare(b.lecture_date)
+    );
     const isOverall = date === OVERALL_VIEW;
     const card = isOverall
       ? buildAggregate(cards)
@@ -76,7 +78,9 @@ export default function AnalysisPage() {
     );
   }
 
-  const cards = session.scorecards;
+  const cards = [...session.scorecards].sort((a, b) =>
+    a.lecture_date.localeCompare(b.lecture_date)
+  );
   const multi = cards.length > 1;
   const isOverall = date === OVERALL_VIEW;
   const primary = isOverall
