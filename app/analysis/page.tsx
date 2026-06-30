@@ -191,8 +191,8 @@ export default function AnalysisPage() {
             loading={narrLoading}
           />
 
-          {/* 파일 다수일 경우: 강의별 최종 점수 점 그래프 */}
-          {multi ? (
+          {/* 종합(여러 강의) 뷰에서만: 강의별 최종 점수 점 그래프. 단일 일자엔 추이 무의미 */}
+          {isOverall && multi ? (
             <Card>
               <CardHeader
                 title="강의별 종합 점수 추이"
@@ -216,6 +216,7 @@ export default function AnalysisPage() {
               category={c.key}
               primary={primary}
               cards={cards}
+              showTrend={isOverall}
             />
           ))}
         </section>

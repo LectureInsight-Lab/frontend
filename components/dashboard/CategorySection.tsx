@@ -10,15 +10,17 @@ export function CategorySection({
   category,
   primary,
   cards,
+  showTrend = true,
 }: {
   category: CategoryKey;
   primary: InstructorScorecard; // 표·점수 기준이 되는 강의
   cards: InstructorScorecard[]; // 추이용 전체 강의
+  showTrend?: boolean; // 단일 일자 뷰에선 추이 무의미 → false
 }) {
   const meta = categoryMeta(category);
   const cs = primary.category_scores.find((c) => c.category === category);
   const items = primary.item_scores.filter((i) => i.category === category);
-  const multi = cards.length > 1;
+  const multi = cards.length > 1 && showTrend;
 
   return (
     <Card>
